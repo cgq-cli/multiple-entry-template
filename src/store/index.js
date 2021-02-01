@@ -1,15 +1,37 @@
-import Vue from 'vue'
-import Vuex from  'vuex'
-import getters from './getters'
-import user from './modules/user'
+// import Vue from 'vue'
+// import Vuex from 'vuex'
+import createPersistedState from 'vuex-persistedstate'
 
-Vue.use(Vuex)
+// Vue.use(Vuex)
 
-const store = new Vuex.Store({
+const storeModules = require.context('./modules', false, /\.js$/)
+
+let obj = {}
+
+// modules自动注册到store中
+storeModules.keys().forEach(currentPath => {
+    let str = currentPath.match(/\/(\S*)\.js/)[1]
+    obj = {
+        ...obj,
+        [str]: storeModules(currentPath).default
+    }
+})
+
+export default new Vuex.Store({
     modules: {
-        user
+        ...obj
     },
-    getters
-});
-
-export default store
+    plugins: [
+        createPersistedState({
+            storage: localStorage, // vuex的部分数据持久化到localStorage中
+            reducer: val => {
+                // 需要持久化的数据
+                return {
+                    user: {
+                        token: val.user.token,
+                    }
+                }
+            }
+        })
+    ]
+})
